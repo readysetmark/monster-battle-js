@@ -1,3 +1,7 @@
+body {
+    background-color: #666;
+}
+
 h1 {
     font: bold 2.2em monospace;
     text-align: center;
@@ -31,32 +35,33 @@ div.console div.jquery-console-focus span.jquery-console-cursor {
     font-weight:bold
 }
 
-div.console div.not-implemented {
+div.console div.jquery-console-message {
+    color:#aaaafe;
+    font-family:monospace;
+    padding:0.1em;
+}
+
+div.console div.jquery-console-welcome {
+    color:#1ad027;
+    font-family:monospace;
+    padding:0.1em;
+}
+
+div.console div.jquery-console-not-implemented {
     color: #ef0505;
     font-family: monospace;
     font-weight: bold;
     padding: 0.1em;
 }
 
-div.console div.jquery-console-message-error {
-    color:#ef0505;
-    font-family:sans-serif;
-    font-weight:bold;
-    padding:0.1em;
-}
-
-div.console div.jquery-console-message-value {
-    color:#1ad027;
-    font-family:monospace;
-    padding:0.1em;
-}
-
-div.console div.jquery-console-message-type {
+div.console div.jquery-console-player-status {
     color:#52666f;
     font-family:monospace;
     padding:0.1em;
 }
 
-div.console span.jquery-console-prompt-label {
-    font-weight:bold
+div.console div.jquery-console-player-status {
+    color:#aafeaa;
+    font-family:monospace;
+    padding:0.1em;
 }
