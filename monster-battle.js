@@ -1,9 +1,58 @@
+function clone(object) {
+  function OneShotConstructor(){}
+  OneShotConstructor.prototype = object;
+  return new OneShotConstructor();
+}
+
 function method(object, name) {
   return function() {
     return object[name].apply(object, arguments);
   };
 }
 
+function randomInteger(max) {
+  return Math.ceil(Math.random() * max);
+}
+
+
+
+function Monster(type) {
+  this.health = randomInteger(10);
+  this.monsterType = type;
+}
+Monster.prototype.isDead = function() {
+  return this.health <= 0;
+};
+Monster.prototype.show = function() {
+  if (this.isDead()) return "**dead**";
+  else return "(Health=" + this.health + ") " + this.description();
+};
+Monster.prototype.description = function() {
+  return "A fierce " + this.monsterType;
+}
+Monster.prototype.hit = function(damage) {
+  this.health -= damage;
+  if (this.isDead())
+    return "You killed the " + this.monsterType + "!";
+  else
+    return "You hit the " + this.monsterType + ", knocking off " + damage
+      + " health points!";
+}
+
+function OrcMonster() {
+  Monster.call(this, "Orc");
+  this.clubLevel = randomInteger(8);
+}
+OrcMonster.prototype = clone(Monster.prototype);
+OrcMonster.prototype.constructor = OrcMonster;
+OrcMonster.prototype.description = function() {
+  return "A wicked orc with a level " + this.clubLevel + " club";
+};
+OrcMonster.prototype.attack = function() {
+  var dmg = randomInteger(this.clubLevel);
+  var msg = "An orc swings his club at you and knocks off " + dmg + " of your health points."
+  return {message: msg, damage: dmg};
+};
 
 
 function Player() {
@@ -26,7 +75,7 @@ Player.prototype.attackOptions = function() {
   }
   return attacks;
 };
-Player.prototype.status = function() {
+Player.prototype.show = function() {
   return "You are a valiant knight with a health of " + this.health
     + ", an agility of " + this.agility + ", and a strength of " + this.strength + "."
 };
@@ -66,19 +115,27 @@ MonsterBattle.prototype.commandHandle = function(line) {
   var messages = [];
   if (this.gameState == null) {
     this.newGame();
+    this.showMonsters(messages);
   }
   else if (this.gameState.player.attacks[line] == null) {
     messages.push({msg: "Invalid command", className: "jquery-console-invalid-command"});
   }
-  this.prompt(messages);
+  this.showPrompt(messages);
   return messages;
 };
 MonsterBattle.prototype.newGame = function() {
   this.gameState = {
-    player: new Player()
-  }
+    player: new Player(),
+    monsters: [new OrcMonster()]
+  };
 };
-MonsterBattle.prototype.prompt = function(messages) {
-  messages.push({msg: this.gameState.player.status(), className: "jquery-console-player-status"});
+MonsterBattle.prototype.showMonsters = function(messages) {
+  messages.push({msg: "You are faced with these foes:"});
+  for(var i = 0; i < this.gameState.monsters.length; i++) {
+    messages.push({msg: (i+1) + ". " + this.gameState.monsters[i].show()});
+  }
+}
+MonsterBattle.prototype.showPrompt = function(messages) {
+  messages.push({msg: this.gameState.player.show(), className: "jquery-console-player-status"});
   messages.push({msg: this.gameState.player.attackOptions(), className: "jquery-console-options"});
 };
