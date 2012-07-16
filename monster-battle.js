@@ -20,12 +20,12 @@ Player.prototype.isDead = function() {
   return this.health <= 0;
 };
 Player.prototype.attackOptions = function() {
-  var attacks = "Select ttack style: "
+  var attacks = "Select attack style: ";
   for(var attack in this.attacks) {
     attacks = attacks + " " + this.attacks[attack];
   }
   return attacks;
-}
+};
 Player.prototype.status = function() {
   return "You are a valiant knight with a health of " + this.health
     + ", an agility of " + this.agility + ", and a strength of " + this.strength + "."
@@ -50,30 +50,35 @@ function MonsterBattle(place) {
   });
 
   // Game state
-  //this.gameState = null;
+  this.gameState = null;
 }
 // MonsterBattle.prototype.commandValidate = function(line) {
+//   if (this.gameState == null) {
+//     return true;
+//   }
+//   else {
+
+//   }
 //   if (line == "") return false;
 //   else return true;
 // };
 MonsterBattle.prototype.commandHandle = function(line) {
+  var messages = [];
   if (this.gameState == null) {
-    return this.newGame();
+    this.newGame();
   }
-  else {
-    return [{msg: this.gameState.player.toString(),
-           className: "jquery-console-normal"}];
+  else if (this.gameState.player.attacks[line] == null) {
+    messages.push({msg: "Invalid command", className: "jquery-console-invalid-command"});
   }
+  this.prompt(messages);
+  return messages;
 };
 MonsterBattle.prototype.newGame = function() {
   this.gameState = {
     player: new Player()
   }
-
-  return [
-    {msg: this.gameState.player.status(),
-      className: "jquery-console-player-status"},
-    {msg: this.gameState.player.attackOptions(),
-      className: "jquery-console-options"}
-  ];
+};
+MonsterBattle.prototype.prompt = function(messages) {
+  messages.push({msg: this.gameState.player.status(), className: "jquery-console-player-status"});
+  messages.push({msg: this.gameState.player.attackOptions(), className: "jquery-console-options"});
 };

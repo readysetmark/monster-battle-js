@@ -47,7 +47,7 @@ div.console div.jquery-console-welcome {
     padding:0.1em;
 }
 
-div.console div.jquery-console-not-implemented {
+div.console div.jquery-console-invalid-command {
     color: #ef0505;
     font-family: monospace;
     font-weight: bold;
