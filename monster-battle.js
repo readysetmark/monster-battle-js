@@ -32,11 +32,11 @@ Monster.prototype.description = function() {
 }
 Monster.prototype.hit = function(damage) {
   this.health -= damage;
-  if (this.isDead())
-    return "You killed the " + this.monsterType + "!";
-  else
-    return "You hit the " + this.monsterType + ", knocking off " + damage
+  var msg = "You hit the " + this.monsterType + ", knocking off " + damage
       + " health points!";
+  if (this.isDead())
+    msg +=  " The " + this.monsterType + " has been slain!";
+  return msg;
 }
 
 function OrcMonster() {
@@ -68,7 +68,13 @@ function Player() {
 Player.prototype.isDead = function() {
   return this.health <= 0;
 };
-Player.prototype.attackOptions = function() {
+Player.prototype.getNumberOfAttacksForRound = function() {
+  return 1 + Math.floor(Math.max(0, this.agility) / 15)
+}
+Player.prototype.getRoundhouseAttacks = function() {
+  return 1 + randomInteger(Math.floor(this.strength / 3))
+}
+Player.prototype.getAttackOptions = function() {
   var attacks = "Select attack style: ";
   for(var attack in this.attacks) {
     attacks = attacks + " " + this.attacks[attack];
@@ -78,6 +84,112 @@ Player.prototype.attackOptions = function() {
 Player.prototype.show = function() {
   return "You are a valiant knight with a health of " + this.health
     + ", an agility of " + this.agility + ", and a strength of " + this.strength + "."
+};
+
+
+
+function GameState() {
+  this.player = null;
+  this.playerAction = null;
+  this.attacksRemaining = null;
+  this.monsters = null;
+  this.nextCommandHandler = this.newGameHandler;
+}
+GameState.prototype.newGameHandler = function(line) {
+  this.player = new Player();
+  this.playerAction = null;
+  this.attacksRemaining = null;
+  this.monsters = [new OrcMonster()];
+  return this.startRound();
+};
+GameState.prototype.startRound = function() {
+  var messages = []
+  this.attacksRemaining = this.player.getNumberOfAttacksForRound();
+  this.showMonsters(messages);
+  this.showAttackPrompt(messages);
+  return messages
+};
+GameState.prototype.showMonsters = function(messages) {
+  messages.push({msg: "You are faced with these foes:"});
+  for (var i = 0; i < this.monsters.length; i++) {
+    messages.push({msg: (i+1) + ". " + this.monsters[i].show()});
+  }
+};
+GameState.prototype.showAttackPrompt = function(messages) {
+  messages.push({msg: this.player.show(), className: "jquery-console-player-status"});
+  messages.push({msg: this.player.getAttackOptions(), className: "jquery-console-options"});
+  this.nextCommandHandler = this.attackHandler;
+};
+GameState.prototype.attackHandler = function(line) {
+  var messages = [];
+  switch(line) {
+    // case "s":
+    //   this.playerAction = "stab";
+    //   this.attacksRemaining -= 1;
+    //   this.pickMonster(messages);
+    //   break;
+
+    // case "d":
+    //   this.playerAction = "doubleSwing1";
+    //   this.attacksRemaining -= 1;
+    //   this.pickMonster(messages);
+    //   break;
+
+    case "r":
+      this.playerAction = "roundhouse";
+      this.attacksRemaining -= 1;
+      this.roundhouseAttack(messages);
+      break;
+
+    default:
+      messages.push({msg: "Invalid command", className: "jquery-console-invalid-command"});
+      this.showAttackPrompt(messages);
+      break;
+  }
+  return messages;
+};
+GameState.prototype.roundhouseAttack = function(messages) {
+  var numAttacks = this.player.getRoundhouseAttacks();
+  for (var i = 0; i < numAttacks && !this.monstersAllDead(); i++) {
+    messages.push({msg: this.monsters[this.randomMonster()].hit(1)});
+  }
+
+  this.playerAction = null;
+  this.endAttack(messages);
+};
+GameState.prototype.randomMonster = function() {
+  var index = null;
+  do {
+    index = randomInteger(this.monsters.length) - 1;
+  } while (this.monsters[index].isDead());
+  return index;
+}
+GameState.prototype.monstersAllDead = function() {
+  for (var i = 0; i < this.monsters.length; i++) {
+    if (!this.monsters[i].isDead())
+      return false;
+  }
+  return true;
+};
+GameState.prototype.endAttack = function(messages) {
+  if (!this.checkWonGame(messages)) {
+    this.checkRoundEnd(messages);
+  }
+};
+GameState.prototype.checkWonGame = function(messages) {
+  if (this.monstersAllDead()) {
+    messages.push({msg: "Congratulations! You have vanquished all your foes."});
+    this.nextCommandHandler = this.newGameHandler;
+    return true;
+  }
+  return false;
+};
+GameState.prototype.checkRoundEnd = function(messages) {
+  if (this.attacksRemaining == 0) {
+    messages.push({msg: "Implement monster attacks!", className: "jquery-console-invalid-command"});
+  }
+  this.showMonsters(messages);
+  this.showAttackPrompt(messages);
 };
 
 
@@ -99,43 +211,9 @@ function MonsterBattle(place) {
   });
 
   // Game state
-  this.gameState = null;
+  this.gameState = new GameState();
 }
-// MonsterBattle.prototype.commandValidate = function(line) {
-//   if (this.gameState == null) {
-//     return true;
-//   }
-//   else {
-
-//   }
-//   if (line == "") return false;
-//   else return true;
-// };
 MonsterBattle.prototype.commandHandle = function(line) {
-  var messages = [];
-  if (this.gameState == null) {
-    this.newGame();
-    this.showMonsters(messages);
-  }
-  else if (this.gameState.player.attacks[line] == null) {
-    messages.push({msg: "Invalid command", className: "jquery-console-invalid-command"});
-  }
-  this.showPrompt(messages);
-  return messages;
+  return this.gameState.nextCommandHandler(line);
 };
-MonsterBattle.prototype.newGame = function() {
-  this.gameState = {
-    player: new Player(),
-    monsters: [new OrcMonster()]
-  };
-};
-MonsterBattle.prototype.showMonsters = function(messages) {
-  messages.push({msg: "You are faced with these foes:"});
-  for(var i = 0; i < this.gameState.monsters.length; i++) {
-    messages.push({msg: (i+1) + ". " + this.gameState.monsters[i].show()});
-  }
-}
-MonsterBattle.prototype.showPrompt = function(messages) {
-  messages.push({msg: this.gameState.player.show(), className: "jquery-console-player-status"});
-  messages.push({msg: this.gameState.player.attackOptions(), className: "jquery-console-options"});
-};
+
