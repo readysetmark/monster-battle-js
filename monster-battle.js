@@ -69,11 +69,20 @@ Player.prototype.isDead = function() {
   return this.health <= 0;
 };
 Player.prototype.getNumberOfAttacksForRound = function() {
-  return 1 + Math.floor(Math.max(0, this.agility) / 15)
-}
+  return 1 + Math.floor(Math.max(0, this.agility) / 15);
+};
 Player.prototype.getRoundhouseAttacks = function() {
-  return 1 + randomInteger(Math.floor(this.strength / 3))
-}
+  return 1 + randomInteger(Math.floor(this.strength / 3));
+};
+Player.prototype.getRoundhouseDamage = function() {
+  return 1;
+};
+Player.prototype.getStabDamage = function() {
+  return 2 + randomInteger(Math.floor(this.strength / 2));
+};
+Player.prototype.getDoubleSwingDamage = function() {
+  return randomInteger(Math.floor(this.strength) / 6);
+};
 Player.prototype.getAttackOptions = function() {
   var attacks = "Select attack style: ";
   for(var attack in this.attacks) {
@@ -99,9 +108,15 @@ GameState.prototype.newGameHandler = function(line) {
   this.player = new Player();
   this.playerAction = null;
   this.attacksRemaining = null;
-  this.monsters = [new OrcMonster()];
+  this.generateMonsters(12);
   return this.startRound();
 };
+GameState.prototype.generateMonsters = function(num) {
+  this.monsters = [];
+  for (var i = 0; i < num; i++) {
+    this.monsters.push(new OrcMonster());
+  }
+}
 GameState.prototype.startRound = function() {
   var messages = []
   this.attacksRemaining = this.player.getNumberOfAttacksForRound();
@@ -123,20 +138,20 @@ GameState.prototype.showAttackPrompt = function(messages) {
 GameState.prototype.attackHandler = function(line) {
   var messages = [];
   switch(line) {
-    // case "s":
-    //   this.playerAction = "stab";
-    //   this.attacksRemaining -= 1;
-    //   this.pickMonster(messages);
-    //   break;
+    case "s":
+      this.attacksRemaining -= 1;
+      this.playerAction = {action: "stab"};
+      this.pickMonster(messages);
+      break;
 
-    // case "d":
-    //   this.playerAction = "doubleSwing1";
-    //   this.attacksRemaining -= 1;
-    //   this.pickMonster(messages);
-    //   break;
+    case "d":
+      this.attacksRemaining -= 1;
+      this.playerAction = {action: "doubleSwing1", damage: this.player.getDoubleSwingDamage()};
+      messages.push({msg: "Your double swing has a strength of " + this.playerAction.damage});
+      this.pickMonster(messages);
+      break;
 
     case "r":
-      this.playerAction = "roundhouse";
       this.attacksRemaining -= 1;
       this.roundhouseAttack(messages);
       break;
@@ -151,10 +166,8 @@ GameState.prototype.attackHandler = function(line) {
 GameState.prototype.roundhouseAttack = function(messages) {
   var numAttacks = this.player.getRoundhouseAttacks();
   for (var i = 0; i < numAttacks && !this.monstersAllDead(); i++) {
-    messages.push({msg: this.monsters[this.randomMonster()].hit(1)});
+    messages.push({msg: this.monsters[this.randomMonster()].hit(this.player.getRoundhouseDamage())});
   }
-
-  this.playerAction = null;
   this.endAttack(messages);
 };
 GameState.prototype.randomMonster = function() {
@@ -172,6 +185,7 @@ GameState.prototype.monstersAllDead = function() {
   return true;
 };
 GameState.prototype.endAttack = function(messages) {
+  this.playerAction = null;
   if (!this.checkWonGame(messages)) {
     this.checkRoundEnd(messages);
   }
@@ -179,6 +193,7 @@ GameState.prototype.endAttack = function(messages) {
 GameState.prototype.checkWonGame = function(messages) {
   if (this.monstersAllDead()) {
     messages.push({msg: "Congratulations! You have vanquished all your foes."});
+    messages.push({msg: "Press <enter> to start a new game."});
     this.nextCommandHandler = this.newGameHandler;
     return true;
   }
@@ -190,6 +205,54 @@ GameState.prototype.checkRoundEnd = function(messages) {
   }
   this.showMonsters(messages);
   this.showAttackPrompt(messages);
+};
+GameState.prototype.pickMonster = function(messages) {
+  messages.push({msg: "Select monster #"});
+  this.nextCommandHandler = this.pickMonsterHandler;
+};
+GameState.prototype.pickMonsterHandler = function(line) {
+  var messages = [];
+  var status = this.parseMonsterNumber(line, messages);
+  if (status.valid) {
+    switch (this.playerAction.action) {
+      case "stab":
+        messages.push({msg: this.monsters[status.index].hit(this.player.getStabDamage())});
+        this.endAttack(messages);
+        break;
+
+      case "doubleSwing1":
+        messages.push({msg: this.monsters[status.index].hit(this.playerAction.damage)});
+        if (!this.checkWonGame(messages)) {
+          this.playerAction.action = "doubleSwing2";
+          this.pickMonster(messages);
+        }
+        break;
+
+      case "doubleSwing2":
+        messages.push({msg: this.monsters[status.index].hit(this.playerAction.damage)});
+        this.endAttack(messages);
+        break;
+
+      default:
+        messages.push({msg: "Weird, how did you get here?", className: "jquery-console-invalid-command"});
+        break;
+    }
+  }
+  return messages;
+};
+GameState.prototype.parseMonsterNumber = function(line, messages) {
+  var monsterNum = parseInt(line) - 1;
+  if (typeof(this.monsters[monsterNum]) != "object") {
+    messages.push({msg: "That is not a valid monster number.", className: "jquery-console-invalid-command"});
+    this.pickMonster(messages);
+    return {valid: false};
+  }
+  if (this.monsters[monsterNum].isDead()) {
+    messages.push({msg: "That monster is already dead.", className: "jquery-console-invalid-command"});
+    this.pickMonster(messages);
+    return {valid: false};
+  }
+  return {valid: true, index: monsterNum};
 };
 
 
