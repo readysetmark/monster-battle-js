@@ -96,6 +96,23 @@ SlimeMoldMonster.prototype.attack = function() {
   return attacks;
 };
 
+function BrigandMonster() {
+  Monster.call(this, "Brigand");
+}
+BrigandMonster.prototype = clone(Monster.prototype);
+BrigandMonster.prototype.constructor = BrigandMonster;
+BrigandMonster.prototype.attack = function(player) {
+  var target = Math.max(Math.max(player.health, player.agility), player.strength);
+  if (target == player.health) {
+    return [{message: "A brigand hits you with his slingshot, taking off 2 health points!", healthDamage: 2}];
+  }
+  else if (target == player.agility) {
+    return [{message: "A brigand catches your leg with his whip, taking off 2 agility points!", agilityDamage: 2}];
+  }
+  else {
+    return [{message: "A brigand cuts your arm with his whip, taking off 2 strength points!", strengthDamage: 2}];
+  }
+};
 
 
 
@@ -169,7 +186,7 @@ GameState.prototype.newGameHandler = function(line) {
   return messages;
 };
 GameState.prototype.generateMonsters = function(num) {
-  var monsterConstructors = [OrcMonster, HydraMonster, SlimeMoldMonster];
+  var monsterConstructors = [OrcMonster, HydraMonster, SlimeMoldMonster, BrigandMonster];
   this.monsters = [];
   for (var i = 0; i < num; i++) {
     this.monsters.push(new monsterConstructors[randomInteger(monsterConstructors.length)-1]());
@@ -279,10 +296,12 @@ GameState.prototype.checkRoundEnd = function(messages) {
 };
 GameState.prototype.doMonsterAttackPhase = function(messages) {
   for (var i = 0; i < this.monsters.length; i++) {
-    var attacks = this.monsters[i].attack();
-    for (var j = 0; j < attacks.length; j++) {
-      messages.push({msg: attacks[j].message});
-      this.player.hit(attacks[j]);
+    if (!this.monsters[i].isDead()) {
+      var attacks = this.monsters[i].attack(this.player);
+      for (var j = 0; j < attacks.length; j++) {
+        messages.push({msg: attacks[j].message});
+        this.player.hit(attacks[j]);
+      }
     }
   }
 };
