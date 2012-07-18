@@ -54,6 +54,31 @@ OrcMonster.prototype.attack = function() {
   return {message: msg, damage: dmg};
 };
 
+function HydraMonster() {
+  Monster.call(this, "Hydra");
+}
+HydraMonster.prototype = clone(Monster.prototype);
+HydraMonster.prototype.constructor = HydraMonster;
+HydraMonster.prototype.description = function() {
+  return "A malicious hydra with " + this.health + " heads.";
+};
+HydraMonster.prototype.hit = function(damage) {
+  this.health -= damage;
+  if (this.isDead()) {
+    return "The corpse of the fully decapitated and decapacitated hydra falls to the floor!";
+  }
+  return "You lop off " + damage + " of the hydra's heads!";
+}
+HydraMonster.prototype.attack = function() {
+  var dmg = randomInteger(Math.ceil(this.health / 2));
+  var msg = "A hydra attacks you with " + dmg + " of its heads! It also grows back one more head!";
+  this.health += 1;
+  return {message: msg, damage: dmg};
+}
+
+
+
+
 
 function Player() {
   this.health = 30;
@@ -81,7 +106,7 @@ Player.prototype.getStabDamage = function() {
   return 2 + randomInteger(Math.floor(this.strength / 2));
 };
 Player.prototype.getDoubleSwingDamage = function() {
-  return 1 + randomInteger(Math.floor(this.strength) / 6);
+  return randomInteger(Math.ceil(this.strength / 6));
 };
 Player.prototype.getAttackOptions = function() {
   var attacks = "Select attack style: ";
@@ -105,24 +130,25 @@ function GameState() {
   this.nextCommandHandler = this.newGameHandler;
 }
 GameState.prototype.newGameHandler = function(line) {
+  var messages = [];
   this.player = new Player();
   this.playerAction = null;
   this.attacksRemaining = null;
   this.generateMonsters(12);
-  return this.startRound();
+  this.startRound(messages)
+  return messages;
 };
 GameState.prototype.generateMonsters = function(num) {
+  var monsterConstructors = [OrcMonster, HydraMonster];
   this.monsters = [];
   for (var i = 0; i < num; i++) {
-    this.monsters.push(new OrcMonster());
+    this.monsters.push(new monsterConstructors[randomInteger(monsterConstructors.length)-1]());
   }
 }
-GameState.prototype.startRound = function() {
-  var messages = []
+GameState.prototype.startRound = function(messages) {
   this.attacksRemaining = this.player.getNumberOfAttacksForRound();
   this.showMonsters(messages);
   this.showAttackPrompt(messages);
-  return messages
 };
 GameState.prototype.showMonsters = function(messages) {
   messages.push({msg: "You are faced with these foes:"});
@@ -132,7 +158,8 @@ GameState.prototype.showMonsters = function(messages) {
 };
 GameState.prototype.showAttackPrompt = function(messages) {
   messages.push({msg: this.player.show(), className: "jquery-console-player-status"});
-  messages.push({msg: this.player.getAttackOptions(), className: "jquery-console-options"});
+  messages.push({msg: "You have " + this.attacksRemaining + " attacks left this round."});
+  messages.push({msg: this.player.getAttackOptions()});
   this.nextCommandHandler = this.attackHandler;
 };
 GameState.prototype.attackHandler = function(line) {
@@ -211,8 +238,11 @@ GameState.prototype.checkLostGame = function(messages) {
 GameState.prototype.checkRoundEnd = function(messages) {
   if (this.attacksRemaining == 0) {
     this.doMonsterAttackPhase(messages);
+    if (!this.checkLostGame(messages)) {
+      this.startRound(messages);
+    }
   }
-  if (!this.checkLostGame(messages)) {
+  else {
     this.showMonsters(messages);
     this.showAttackPrompt(messages);
   }
