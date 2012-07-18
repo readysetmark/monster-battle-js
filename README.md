@@ -5,6 +5,8 @@ A reproduction of the Orc Battle game from the book
 [Land of Lisp](http://www.landoflisp.com) by Conrad Barski. This verison by 
 Mark Williams. Visit my [website](http://www.readysetmark.com).
 
+[Try it online](http://www.readysetmark.com/monsterbattle/).
+
 I worked on this largely to become more familiar with JavaScript.
 
 Dependencies:
