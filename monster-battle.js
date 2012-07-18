@@ -81,7 +81,7 @@ Player.prototype.getStabDamage = function() {
   return 2 + randomInteger(Math.floor(this.strength / 2));
 };
 Player.prototype.getDoubleSwingDamage = function() {
-  return randomInteger(Math.floor(this.strength) / 6);
+  return 1 + randomInteger(Math.floor(this.strength) / 6);
 };
 Player.prototype.getAttackOptions = function() {
   var attacks = "Select attack style: ";
@@ -199,12 +199,30 @@ GameState.prototype.checkWonGame = function(messages) {
   }
   return false;
 };
+GameState.prototype.checkLostGame = function(messages) {
+  if (this.player.isDead()) {
+    messages.push({msg: "You have been killed. Game over."});
+    messages.push({msg: "Press <enter> to start a new game."});
+    this.nextCommandHandler = this.newGameHandler;
+    return true;
+  }
+  return false;
+}
 GameState.prototype.checkRoundEnd = function(messages) {
   if (this.attacksRemaining == 0) {
-    messages.push({msg: "Implement monster attacks!", className: "jquery-console-invalid-command"});
+    this.doMonsterAttackPhase(messages);
   }
-  this.showMonsters(messages);
-  this.showAttackPrompt(messages);
+  if (!this.checkLostGame(messages)) {
+    this.showMonsters(messages);
+    this.showAttackPrompt(messages);
+  }
+};
+GameState.prototype.doMonsterAttackPhase = function(messages) {
+  for (var i = 0; i < this.monsters.length; i++) {
+    var result = this.monsters[i].attack();
+    messages.push({msg: result.message});
+    this.player.health -= result.damage;
+  }
 };
 GameState.prototype.pickMonster = function(messages) {
   messages.push({msg: "Select monster #"});
