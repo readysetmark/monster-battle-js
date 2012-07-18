@@ -1,13 +1,20 @@
 body {
-    background-color: #666;
+    background-color: #bbb;
 }
 
 h1 {
-    font: bold 2.2em monospace;
+    font: bold 2.2em Arial, sans-serif;
     text-align: center;
-    padding: 10px;
+    padding: 7px;
 }
 
+p {
+    position: relative;
+    width: 40%;
+    left: 30%;
+    font: 1em Arial, sans-serif;
+    text-align: center;
+}
       
 div.console { 
     font-size: 14px
@@ -38,32 +45,45 @@ div.console div.jquery-console-focus span.jquery-console-cursor {
 }
 
 div.console div.jquery-console-message {
-    color:#aaaafe;
+    color:#eee;
     font-family:monospace;
     padding:0.1em;
 }
 
 div.console div.jquery-console-welcome {
-    color:#1ad027;
+    color:#1d2;
     font-family:monospace;
+    font-weight:bold;
     padding:0.1em;
 }
 
-div.console div.jquery-console-invalid-command {
-    color: #ef0505;
+div.console div.jquery-console-error {
+    color: #e00;
     font-family: monospace;
     font-weight: bold;
     padding: 0.1em;
 }
 
 div.console div.jquery-console-player-status {
-    color:#52666f;
+    color:#ffa;
     font-family:monospace;
     padding:0.1em;
 }
 
-div.console div.jquery-console-player-status {
-    color:#aafeaa;
+div.console div.jquery-console-prompt {
+    color:#aaf;
+    font-family:monospace;
+    padding:0.1em;
+}
+
+div.console div.jquery-console-attack {
+    color:#afa;
+    font-family:monospace;
+    padding:0.1em;
+}
+
+div.console div.jquery-console-damage {
+    color:#faa;
     font-family:monospace;
     padding:0.1em;
 }
