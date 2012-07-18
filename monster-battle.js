@@ -28,14 +28,14 @@ Monster.prototype.show = function() {
   else return "(Health=" + this.health + ") " + this.description();
 };
 Monster.prototype.description = function() {
-  return "A fierce " + this.monsterType;
+  return "A fierce " + this.monsterType.toLowerCase();
 }
 Monster.prototype.hit = function(damage) {
   this.health -= damage;
-  var msg = "You hit the " + this.monsterType + ", knocking off " + damage
+  var msg = "You hit the " + this.monsterType.toLowerCase() + ", knocking off " + damage
       + " health points!";
   if (this.isDead())
-    msg +=  " The " + this.monsterType + " has been slain!";
+    msg +=  " The " + this.monsterType.toLowerCase() + " has been slain!";
   return msg;
 }
 
@@ -51,7 +51,7 @@ OrcMonster.prototype.description = function() {
 OrcMonster.prototype.attack = function() {
   var dmg = randomInteger(this.clubLevel);
   var msg = "An orc swings his club at you and knocks off " + dmg + " of your health points."
-  return {message: msg, damage: dmg};
+  return [{message: msg, healthDamage: dmg}];
 };
 
 function HydraMonster() {
@@ -60,7 +60,7 @@ function HydraMonster() {
 HydraMonster.prototype = clone(Monster.prototype);
 HydraMonster.prototype.constructor = HydraMonster;
 HydraMonster.prototype.description = function() {
-  return "A malicious hydra with " + this.health + " heads.";
+  return "A malicious hydra with " + this.health + " heads";
 };
 HydraMonster.prototype.hit = function(damage) {
   this.health -= damage;
@@ -68,14 +68,33 @@ HydraMonster.prototype.hit = function(damage) {
     return "The corpse of the fully decapitated and decapacitated hydra falls to the floor!";
   }
   return "You lop off " + damage + " of the hydra's heads!";
-}
+};
 HydraMonster.prototype.attack = function() {
   var dmg = randomInteger(Math.ceil(this.health / 2));
   var msg = "A hydra attacks you with " + dmg + " of its heads! It also grows back one more head!";
   this.health += 1;
-  return {message: msg, damage: dmg};
-}
+  return [{message: msg, healthDamage: dmg}];
+};
 
+function SlimeMoldMonster() {
+  Monster.call(this, "Slime Mold");
+  this.sliminess = randomInteger(5);
+}
+SlimeMoldMonster.prototype = clone(Monster.prototype);
+SlimeMoldMonster.prototype.constructor = SlimeMoldMonster;
+SlimeMoldMonster.prototype.description = function() {
+  return "A slime mold with a sliminess of " + this.sliminess;
+};
+SlimeMoldMonster.prototype.attack = function() {
+  var attacks = [];
+  var dmg = randomInteger(this.sliminess);
+  var msg = "A slime mold wraps around your legs and decreases your agility by " + dmg + ".";
+  attacks.push({message: msg, agilityDamage: dmg})
+  if (randomInteger(2) == 2) {
+    attacks.push({message: "It also squirts in your face, taking away a health point!", healthDamage: 1});
+  }
+  return attacks;
+};
 
 
 
@@ -92,6 +111,17 @@ function Player() {
 }
 Player.prototype.isDead = function() {
   return this.health <= 0;
+};
+Player.prototype.hit = function(attack) {
+  if (typeof(attack["healthDamage"]) == "number") {
+    this.health -= attack["healthDamage"];
+  }
+  if (typeof(attack["agilityDamage"]) == "number") {
+    this.agility -= attack["agilityDamage"];
+  }
+  if (typeof(attack["strengthDamage"]) == "number") {
+    this.strength -= attack["strengthDamage"];
+  }
 };
 Player.prototype.getNumberOfAttacksForRound = function() {
   return 1 + Math.floor(Math.max(0, this.agility) / 15);
@@ -139,7 +169,7 @@ GameState.prototype.newGameHandler = function(line) {
   return messages;
 };
 GameState.prototype.generateMonsters = function(num) {
-  var monsterConstructors = [OrcMonster, HydraMonster];
+  var monsterConstructors = [OrcMonster, HydraMonster, SlimeMoldMonster];
   this.monsters = [];
   for (var i = 0; i < num; i++) {
     this.monsters.push(new monsterConstructors[randomInteger(monsterConstructors.length)-1]());
@@ -249,9 +279,11 @@ GameState.prototype.checkRoundEnd = function(messages) {
 };
 GameState.prototype.doMonsterAttackPhase = function(messages) {
   for (var i = 0; i < this.monsters.length; i++) {
-    var result = this.monsters[i].attack();
-    messages.push({msg: result.message});
-    this.player.health -= result.damage;
+    var attacks = this.monsters[i].attack();
+    for (var j = 0; j < attacks.length; j++) {
+      messages.push({msg: attacks[j].message});
+      this.player.hit(attacks[j]);
+    }
   }
 };
 GameState.prototype.pickMonster = function(messages) {
